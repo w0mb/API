@@ -9,14 +9,24 @@ app = FastAPI()
 hotels = [
     {"id": 1, "title": "debil", "rate": "bad"},
     {"id": 2, "title": "debiliii", "rate": "cool"},
-    {"id": 3, "title": "daun", "rate": "awesome"}
+    {"id": 3, "title": "daun", "rate": "awesome"},
+    {"id": 4, "title": "genius", "rate": "good"},
+    {"id": 5, "title": "smart", "rate": "excellent"},
+    {"id": 6, "title": "intelligent", "rate": "amazing"},
 ]
 
 
 @app.get("/hotels")
-def get_hotels():
+def get_hotels(page: int = Query(default=1), count_ipp: int = Query(default=3)):
     global hotels
-    return hotels
+    start = (page - 1) * count_ipp
+    end = start + count_ipp
+
+    return {
+        "page": page,
+        "count_item_per_page": count_ipp,
+        "data": hotels[start:end]
+        }
 
 @app.post("/hotels/{hotel_id}")
 def add_hotel(title: str = Body(), rate: str = Body()):
