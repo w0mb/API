@@ -60,6 +60,3 @@ def patch_hotel(hotel_id: int, hotel_update: str | None = Body(None), new_par: s
 
 if __name__ == "__main__":
     uvicorn.run("main:app", reload=True, port=8003)
-
-
-<iframe src="https://vk.com/video_ext.php?oid=-226241530&id=456258224&hash=43350a80f3007e45" width="333" height="660" frameborder="0" allowfullscreen="1" allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
