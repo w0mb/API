@@ -1,9 +1,15 @@
 from fastapi import FastAPI
 import uvicorn
+
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent))
+
 from src.api.hotel import router as hotel_router
 from src.config import settings
-
-print(f"{settings.DB_NAME=}")
+from src.db import *
+print(f"{settings.DB_URL=}")
 
 app = FastAPI()
 app.include_router(hotel_router)
