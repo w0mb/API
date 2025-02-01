@@ -1,7 +1,7 @@
 from fastapi import Query, Body, APIRouter, Path
 from src.api.dependencies import PaginationDep
 from src.chemas.chema import hotel, hotelPatch, Config
-from src.api.status import OK_JSON, NOTFOUND_JSON
+from src.api.status import OK_JSON, NOTFOUND_JSON, ERROR_JSON
 from src.db import new_session
 
 from sqlalchemy import insert, select, delete, update
@@ -16,7 +16,6 @@ HOTEL_EXAMPLES = Config.schema_extra["examples"]
 async def get_hotels(pagination: PaginationDep,
                      title: str | None = Query(None, description="Название отеля"),
                      location:str | None = Query(None, description="Адрес отеля")):
-
 
     async with new_session() as session:
         limit = pagination.count_ipp
@@ -59,8 +58,11 @@ async def delete_hotel(hotel_id: int = Path(description="ID отеля для у
 
 # Полное изменение чего-то
 # В контексте задачи меняем запись в БД по id отеля
+
 @router.put("/{hotel_id}")
-async def change_hotel_put(hotel_id: int = Path(description="ID отеля для Полного изменения", example=1), hotel_data: hotel = Body(examples=HOTEL_EXAMPLES)):
+async def change_hotel_put(hotel_id: int = Path(description="ID отеля для Полного изменения", example=1),
+                           hotel_data: hotel = Body(examples=HOTEL_EXAMPLES)):
+
     async with new_session() as session:
         update_hotel_stmt = (update(HotelsOrm).
                              where(HotelsOrm.id==hotel_id).
@@ -73,14 +75,20 @@ async def change_hotel_put(hotel_id: int = Path(description="ID отеля дл�
 
 
 @router.patch("/{hotel_id}")
-def partially_edit_hotel(hotel_data: hotelPatch, hotel_id: int = Path(description="ID отеля для Частичного изменения", example=1)):
-    global hotels
-    hotel_item = next((hotel for hotel in hotels if hotel["id"] == hotel_id), None)
-    if not hotel_item:
-        return NOTFOUND_JSON
+async def partially_edit_hotel(hotel_data: hotelPatch,
+                               hotel_id: int = Path(description="ID отеля для Частичного изменения", example=1)):
 
-    if hotel_data.title:
-        hotel_item["title"] = hotel_data.title
-    if hotel_data.name:
-        hotel_item["name"] = hotel_data.name
-    return OK_JSON
+    async with new_session() as session:
+        if hotel_data.title:
+            partially_update_hotel_stmt = (update(HotelsOrm).
+                                           where(HotelsOrm.id == hotel_id).
+                                           values(title=hotel_data.title))
+        if hotel_data.location:
+            partially_update_hotel_stmt = (update(HotelsOrm).
+                                           where(HotelsOrm.id == hotel_id).
+                                           values(location=hotel_data.location))
+        else: return ERROR_JSON
+
+        await session.execute(partially_update_hotel_stmt)
+        await session.commit()
+        return OK_JSON
