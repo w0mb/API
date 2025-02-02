@@ -1,12 +1,14 @@
 from fastapi import Query, Body, APIRouter, Path
 from src.api.dependencies import PaginationDep
 from src.chemas.chema import hotel, hotelPatch, Config
-from src.api.status import OK_JSON, NOTFOUND_JSON, ERROR_JSON
+from src.api.status import Status
 from src.db import new_session
 
 from sqlalchemy import insert, select, delete, update
 from src.models.hotel_models import HotelsOrm
 
+from src.repository.baseRep import BaseRepository
+from src.repository.hotelRep import HotelRepository
 router = APIRouter(prefix="/hotels", tags=["Отели"])
 
 HOTEL_EXAMPLES = Config.schema_extra["examples"]
@@ -21,32 +23,20 @@ async def get_hotels(pagination: PaginationDep,
         limit = pagination.count_ipp
         offset = (pagination.page - 1) * pagination.count_ipp
 
+        return await HotelRepository(session).get_all(title=title,
+                                                      location=location,
+                                                      limit=limit,
+                                                      offset=offset)
 
-        query = select(HotelsOrm)
-
-        if title:
-            query = query.where(HotelsOrm.title.ilike(f"%{title}%"))
-        if location:
-            query = query.where(HotelsOrm.location.ilike(f"%{location}%"))
-
-
-        query = query.limit(limit).offset(offset)
-
-
-        result = await session.execute(query)
-        hotels = result.scalars().all()
-
-        return hotels
 
 
 @router.post("/{hotel_id}")
 async def add_hotel(hotel_data: hotel = Body(openapi_examples=HOTEL_EXAMPLES)):
     async with new_session() as session:
-        add_hotel_stmt = insert(HotelsOrm).values(**hotel_data.model_dump())
-        await session.execute(add_hotel_stmt)
+        result = await HotelRepository(session).add_one(title=hotel_data.title,
+                                                        location=hotel_data.location)
         await session.commit()
-        return OK_JSON
-
+        return result
 
 @router.delete("/{hotel_id}")
 async def delete_hotel(hotel_id: int = Path(description="ID отеля для удаления", example=1)):
@@ -54,7 +44,7 @@ async def delete_hotel(hotel_id: int = Path(description="ID отеля для у
         delete_hotel_stmt = delete(HotelsOrm).where(HotelsOrm.id == hotel_id)
         await session.execute(delete_hotel_stmt)
         await session.commit()
-        return OK_JSON
+        return Status.OK_JSON
 
 # Полное изменение чего-то
 # В контексте задачи меняем запись в БД по id отеля
@@ -71,7 +61,7 @@ async def change_hotel_put(hotel_id: int = Path(description="ID отеля дл�
 
         await session.execute(update_hotel_stmt)
         await session.commit()
-        return OK_JSON
+        return Status.OK_JSON
 
 
 @router.patch("/{hotel_id}")
@@ -87,8 +77,8 @@ async def partially_edit_hotel(hotel_data: hotelPatch,
             partially_update_hotel_stmt = (update(HotelsOrm).
                                            where(HotelsOrm.id == hotel_id).
                                            values(location=hotel_data.location))
-        else: return ERROR_JSON
+        else: return Status.ERROR_JSON
 
         await session.execute(partially_update_hotel_stmt)
         await session.commit()
-        return OK_JSON
+        return Status.OK_JSON
