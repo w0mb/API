@@ -41,8 +41,7 @@ async def add_hotel(hotel_data: hotel = Body(openapi_examples=HOTEL_EXAMPLES)):
 @router.delete("/{hotel_id}")
 async def delete_hotel(hotel_id: int = Path(description="ID отеля для удаления", example=1)):
     async with new_session() as session:
-        delete_hotel_stmt = delete(HotelsOrm).where(HotelsOrm.id == hotel_id)
-        await session.execute(delete_hotel_stmt)
+        result = await HotelRepository(session).delete(hotel_id)
         await session.commit()
         return Status.OK_JSON
 
@@ -54,15 +53,11 @@ async def change_hotel_put(hotel_id: int = Path(description="ID отеля дл�
                            hotel_data: hotel = Body(examples=HOTEL_EXAMPLES)):
 
     async with new_session() as session:
-        update_hotel_stmt = (update(HotelsOrm).
-                             where(HotelsOrm.id==hotel_id).
-                             values(title=hotel_data.title, location=hotel_data.location))
-
-
-        await session.execute(update_hotel_stmt)
+        result = await HotelRepository(session).edit(hotel_id,
+                                            hotel_data.title,
+                                            hotel_data.location)
         await session.commit()
         return Status.OK_JSON
-
 
 @router.patch("/{hotel_id}")
 async def partially_edit_hotel(hotel_data: hotelPatch,

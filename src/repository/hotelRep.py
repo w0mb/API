@@ -1,7 +1,7 @@
 from src.models.hotel_models import HotelsOrm
 from src.repository.baseRep import BaseRepository
 
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, delete, update
 
 from src.api.status import Status
 class HotelRepository(BaseRepository):
@@ -25,7 +25,15 @@ class HotelRepository(BaseRepository):
         return hotels
 
     async def add_one(self, title, location):
-        add_hotel_stmt = insert(self.model).values(title=title, location=location).returning(self.model)
+        add_hotel_stmt = insert(HotelsOrm).values(title=title, location=location).returning(HotelsOrm)
         result = await self.session.execute(add_hotel_stmt)
         inserted_data = result.mappings().first()
         return Status.ok_with_data(dict(inserted_data))
+
+    async def delete(self, id) -> None:
+        delete_hotel_stmt = delete(HotelsOrm).filter_by(id=id)
+        await self.session.execute(delete_hotel_stmt)
+
+    async def edit(self, id, title, location) -> None:
+        update_hotel_stmt = update(HotelsOrm).filter_by(id=id).values(title=title, location=location)
+        await self.session.execute(update_hotel_stmt)
