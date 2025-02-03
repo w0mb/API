@@ -30,7 +30,7 @@ class BaseRepository:
         await self.session.execute(delete_stmt)
 
     async def edit(self,data: BaseModel, **filter_by) -> None:
-        edit_stmt = update(self.model).filter_by(**filter_by).values(data)
-        await self.session.execute()
+        edit_stmt = update(self.model).filter_by(**filter_by).values(**data.model_dump())
+        await self.session.execute(edit_stmt)
 
 
