@@ -29,6 +29,10 @@ async def get_hotels(pagination: PaginationDep,
                                                       offset=offset)
 
 
+@router.get("/{hotel_id")
+async def get_hotel_by_id(hotel_id: int):
+    async with new_session() as session:
+        return await HotelRepository(session).get_one_or_none(id=hotel_id)
 
 @router.post("/{hotel_id}")
 async def add_hotel(hotel_data: hotel = Body(openapi_examples=HOTEL_EXAMPLES)):
@@ -53,7 +57,7 @@ async def change_hotel_put(hotel_id: int = Path(description="ID отеля дл�
                            hotel_data: hotel = Body(examples=HOTEL_EXAMPLES)):
 
     async with new_session() as session:
-        result = await HotelRepository(session).edit(hotel_data, id=hotel_id)
+        await HotelRepository(session).edit(hotel_data, id=hotel_id)
         await session.commit()
         return Status.OK_JSON
 
@@ -62,16 +66,6 @@ async def partially_edit_hotel(hotel_data: hotelPatch,
                                hotel_id: int = Path(description="ID отеля для Частичного изменения", example=1)):
 
     async with new_session() as session:
-        if hotel_data.title:
-            partially_update_hotel_stmt = (update(HotelsOrm).
-                                           where(HotelsOrm.id == hotel_id).
-                                           values(title=hotel_data.title))
-        if hotel_data.location:
-            partially_update_hotel_stmt = (update(HotelsOrm).
-                                           where(HotelsOrm.id == hotel_id).
-                                           values(location=hotel_data.location))
-        else: return Status.ERROR_JSON
-
-        await session.execute(partially_update_hotel_stmt)
+        await HotelRepository(session).edit(hotel_data, id=hotel_id, exclude_unset=True)
         await session.commit()
         return Status.OK_JSON
