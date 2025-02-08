@@ -2,10 +2,11 @@ from sqlalchemy import select, insert, delete, update
 
 from src.api.status import Status
 
-from src.chemas.chema import BaseModel
+from pydantic import BaseModel
 
 class BaseRepository:
     model = None
+    chema: BaseModel = None
 
     def __init__(self, session):
         self.session = session
@@ -13,17 +14,20 @@ class BaseRepository:
     async def get_all(self, **kwargs):
         query = select(self.model)
         result = await self.session.execute(query)
-        return result.scalars().all()
+        return [self.chema.model_validate(model, from_attributes=True) for model in result.scalars.all()]
 
     async def get_one_or_none(self, **filter_by):
         query = select(self.model).filter_by(**filter_by)
         result = await self.session.execute(query)
-        return result.scalars().all()
+        model = result.scalars().one_or_none()
+        if model is None: return None
+        return self.chema.model_validate(model, from_attributes=True)
 
     async def add_one(self, **kwargs):
         add_hotel_stmt = insert(self.model).values(kwargs)
-        await self.session.execute(add_hotel_stmt)
-        return Status.OK_JSON
+        result = await self.session.execute(add_hotel_stmt)
+        model = result.scalars.one()
+        return self.chema.model_validate(model, from_attributes=True)
 
     async def delete(self, **filter_by) -> None:
         delete_stmt = delete(self.model).filter_by(**filter_by)

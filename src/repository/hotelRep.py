@@ -1,12 +1,16 @@
 from src.models.hotel_models import HotelsOrm
 from src.repository.baseRep import BaseRepository
 
-from sqlalchemy import select, insert, delete, update
+from sqlalchemy import select, insert
 
 from src.api.status import Status
+
+from src.chemas.chema import hotel
+
+
 class HotelRepository(BaseRepository):
     model = HotelsOrm
-
+    chema = hotel
     async def get_all(self, title, location, limit, offset):
         query = select(HotelsOrm)
 
@@ -20,9 +24,7 @@ class HotelRepository(BaseRepository):
 
 
         result = await self.session.execute(query)
-        hotels = result.scalars().all()
-
-        return hotels
+        return [hotel.model_validate(hotels, from_attributes=True) for hotels in result.scalars().all()]
 
     async def add_one(self, title, location):
         add_hotel_stmt = insert(HotelsOrm).values(title=title, location=location).returning(HotelsOrm)

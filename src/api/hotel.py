@@ -1,6 +1,6 @@
 from fastapi import Query, Body, APIRouter, Path
 from src.api.dependencies import PaginationDep
-from src.chemas.chema import hotel, hotelPatch, Config
+from src.chemas.chema import hotel, hotelAdd,hotelPatch, Config
 from src.api.status import Status
 from src.db import new_session
 
@@ -29,13 +29,13 @@ async def get_hotels(pagination: PaginationDep,
                                                       offset=offset)
 
 
-@router.get("/{hotel_id")
+@router.get("/{hotel_id", name="Получить один")
 async def get_hotel_by_id(hotel_id: int):
     async with new_session() as session:
         return await HotelRepository(session).get_one_or_none(id=hotel_id)
 
 @router.post("/{hotel_id}")
-async def add_hotel(hotel_data: hotel = Body(openapi_examples=HOTEL_EXAMPLES)):
+async def add_hotel(hotel_data: hotelAdd = Body(openapi_examples=HOTEL_EXAMPLES)):
     async with new_session() as session:
         result = await HotelRepository(session).add_one(title=hotel_data.title,
                                                         location=hotel_data.location)
@@ -54,7 +54,7 @@ async def delete_hotel(hotel_id: int = Path(description="ID отеля для у
 
 @router.put("/{hotel_id}")
 async def change_hotel_put(hotel_id: int = Path(description="ID отеля для Полного изменения", example=1),
-                           hotel_data: hotel = Body(examples=HOTEL_EXAMPLES)):
+                           hotel_data: hotelAdd = Body(examples=HOTEL_EXAMPLES)):
 
     async with new_session() as session:
         await HotelRepository(session).edit(hotel_data, id=hotel_id)
