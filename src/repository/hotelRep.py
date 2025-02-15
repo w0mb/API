@@ -26,8 +26,8 @@ class HotelRepository(BaseRepository):
         result = await self.session.execute(query)
         return [hotel.model_validate(hotels, from_attributes=True) for hotels in result.scalars().all()]
 
-    async def add_one(self, title, location):
-        add_hotel_stmt = insert(HotelsOrm).values(title=title, location=location).returning(HotelsOrm)
-        result = await self.session.execute(add_hotel_stmt)
-        inserted_data = result.mappings().first()
-        return Status.ok_with_data(dict(inserted_data))
+    # async def add_one(self, title, location):
+    #     add_hotel_stmt = insert(HotelsOrm).values(title=title, location=location).returning(HotelsOrm)
+    #     result = await self.session.execute(add_hotel_stmt)
+    #     inserted_data = result.mappings().first()
+    #     return Status.ok_with_data(dict(inserted_data))

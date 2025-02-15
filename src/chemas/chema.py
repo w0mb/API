@@ -1,17 +1,18 @@
 from pydantic import BaseModel, Field, EmailStr
 
-class userRequestAdd(BaseModel):
+class UserRequestAdd(BaseModel):
     email: EmailStr
     password: str
 
-class userRequestGet(BaseModel):
-    id: int
-    email: EmailStr
 
-class userAddDb(BaseModel):
-    id: int
+class UserAdd(BaseModel):
     email: EmailStr
     hashed_password: str
+
+
+class User(BaseModel):
+    id: int
+    email: EmailStr
 
 class hotelAdd(BaseModel):
     title: str

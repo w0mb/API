@@ -24,9 +24,9 @@ class BaseRepository:
         return self.chema.model_validate(model, from_attributes=True)
 
     async def add_one(self, data: BaseModel):
-        add_hotel_stmt = insert(self.model).values(**data.model_dump())
-        result = await self.session.execute(add_hotel_stmt)
-        model = result.scalars.one()
+        add_data_stmt = insert(self.model).values(**data.model_dump()).returning(self.model)
+        result = await self.session.execute(add_data_stmt)
+        model = result.scalars().one()
         return self.chema.model_validate(model, from_attributes=True)
 
     async def delete(self, **filter_by) -> None:
