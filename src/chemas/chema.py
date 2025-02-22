@@ -14,6 +14,10 @@ class User(BaseModel):
     id: int
     email: EmailStr
 
+
+class UserHashedPass(User):
+    hashed_password: str
+
 class hotelAdd(BaseModel):
     title: str
     location: str
