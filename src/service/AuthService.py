@@ -20,4 +20,8 @@ class AuthService:
         encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
         return encoded_jwt
 
+    def decode_token(self, encoded_token: str):
+        return jwt.decode(encoded_token, settings.JWT_SECRET_KEY, settings.JWT_ALGORITHM)
+
+
 

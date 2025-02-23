@@ -6,6 +6,7 @@ from src.db import new_session
 from src.repository.userRep import UserRepository
 from src.api.status import Status
 from src.service.AuthService import AuthService
+from src.api.dependencies import UserDependecies
 
 router = APIRouter(prefix="/users", tags=["Авторизация и Аунтефикация пользователей"])
 
@@ -28,7 +29,7 @@ async def login_user(data: UserRequestAdd, response: Response):
             raise HTTPException(status_code=401, detail="Неверный пароль")
         acsess_token = AuthService().create_access_token({"user_id": user.id})
         response.set_cookie("acsess_token", acsess_token)
-        return acsess_token
+        return Status.OK_JSON
 
 @router.get("/only_login")
 async def get_acsess_token(request: Request):
@@ -37,6 +38,18 @@ async def get_acsess_token(request: Request):
         acsess_token = cookies["acsess_token"]
         return acsess_token
     else: return {"status": "not auth(no acsess_token)"}
+
+@router.get("/me")
+async def get_me(user_id: UserDependecies):
+    async with new_session() as session:
+        result = await UserRepository(session).get_one_or_none(id=user_id)
+        return result
+@router.get("/Logout")
+async def log_out(response: Response):
+    response.delete_cookie("acsess_token")
+    return Status.OK_JSON
+
+
 
 
 
