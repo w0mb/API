@@ -14,7 +14,7 @@ class BaseRepository:
     async def get_all(self, **kwargs):
         query = select(self.model)
         result = await self.session.execute(query)
-        return [self.chema.model_validate(model, from_attributes=True) for model in result.scalars.all()]
+        return [self.chema.model_validate(model, from_attributes=True) for model in result.scalars().all()]
 
     async def get_one_or_none(self, **filter_by):
         query = select(self.model).filter_by(**filter_by)
@@ -30,6 +30,8 @@ class BaseRepository:
         return self.chema.model_validate(model, from_attributes=True)
 
     async def delete(self, **filter_by) -> None:
+        print(filter_by)
+        print(self.model)
         delete_stmt = delete(self.model).filter_by(**filter_by)
         await self.session.execute(delete_stmt)
 
