@@ -1,32 +1,37 @@
 from fastapi import Query, Body, APIRouter, Path
+
 from src.api.dependencies import PaginationDep
 from src.chemas.chema import hotel, hotelAdd,hotelPatch, Config
 from src.api.status import Status
 from src.db import new_session
-
-from sqlalchemy import insert, select, delete, update
 from src.models.hotel_models import HotelsOrm
-
 from src.repository.baseRep import BaseRepository
 from src.repository.hotelRep import HotelRepository
+from src.api.dependencies import DBDep
+
+
 router = APIRouter(prefix="/hotels", tags=["Отели"])
 
 HOTEL_EXAMPLES = Config.schema_extra["examples"]
 
 
 @router.get("")
-async def get_hotels(pagination: PaginationDep,
-                     title: str | None = Query(None, description="Название отеля"),
-                     location:str | None = Query(None, description="Адрес отеля")):
+async def get_hotels(
+        db:DBDep,
+        pagination: PaginationDep,
+        title: str | None = Query(None, description="Название отеля"),
+        location:str | None = Query(None, description="Адрес отеля")
+    ):
 
     async with new_session() as session:
         limit = pagination.count_ipp
         offset = (pagination.page - 1) * pagination.count_ipp
-
-        return await HotelRepository(session).get_all(title=title,
-                                                      location=location,
-                                                      limit=limit,
-                                                      offset=offset)
+        return await db.hotels.get_all(
+            location=location,
+            title=title,
+            limit=limit,
+            offset=offset
+        )
 
 
 @router.get("/{hotel_id", name="Получить один")

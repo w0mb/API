@@ -3,8 +3,8 @@ from fastapi import Depends, Query, Request, HTTPException
 from pydantic import BaseModel
 
 from src.service.AuthService import AuthService
-
-
+from src.utils.db_manager import DBManager
+from src.db import new_session
 class PaginationParams(BaseModel):
     page: Annotated[int | None, Query(1, ge=1)]
     count_ipp: Annotated[int | None, Query(2, ge=1, lt=30)]
@@ -23,3 +23,9 @@ def get_current_user_id(token: str = Depends(get_token)) -> int:
     return data["user_id"]
 
 UserDependecies = Annotated[int, Depends(get_current_user_id)]
+
+async def get_db():
+    async with DBManager(session_factory=new_session) as db:
+        yield db
+
+DBDep = Annotated[DBManager, Depends(get_db)]
