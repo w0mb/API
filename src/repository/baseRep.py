@@ -10,10 +10,16 @@ class BaseRepository:
 
     def __init__(self, session):
         self.session = session
-    async def get_filtred(self, **filter_by):
-        query = select(self.model).filter_by(**filter_by)
+    async def get_filtred(self, *filters, limit: int = None, offset: int = None):
+        query = select(self.model).where(*filters)
+        
+        if limit:
+            query = query.limit(limit)
+        if offset:
+            query = query.offset(offset)
+            
         result = await self.session.execute(query)
-        return [self.chema.model_validate(model, from_attributes=True) for model in result.scalars().all()]
+        return [self.schema.model_validate(row, from_attributes=True) for row in result.scalars().all()]
     
     async def get_all(self, *args, **kwargs):
         return await self.get_filtred()

@@ -20,4 +20,4 @@ app.include_router(room_router)
 app.include_router(booking_router)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True, port=8002)
+    uvicorn.run("main:app", port=8002)

@@ -1,3 +1,4 @@
+from datetime import date
 from fastapi import Query, Body, APIRouter, Path
 from src.api.dependencies import PaginationDep
 from src.chemas.chema import hotel, hotelAdd, hotelPatch, Config
@@ -7,7 +8,7 @@ from src.db import new_session
 
 from sqlalchemy import insert, select, delete, update
 from src.models.hotel_models import HotelsOrm
-
+from src.api.dependencies import DBDep
 from src.repository.baseRep import BaseRepository
 from src.repository.hotelRep import HotelRepository
 from src.repository.roomsRep import RoomRepository
@@ -17,9 +18,13 @@ HOTEL_EXAMPLES = Config.schema_extra["examples"]
 
 
 @router.get("/{hotel_id}/rooms", name="Получить все комнаты у отеля")
-async def get_rooms(hotel_id: int):
-    async with new_session() as session:
-        return await RoomRepository(session).get_filtred(hotel_id=hotel_id)
+async def get_rooms(
+        hotel_id: int,
+        db: DBDep,
+        date_from: date = Query(example="2024-08-01"),
+        date_to: date = Query(example="2024-08-10")
+        ):
+    return await db.rooms.get_filtered_by_time(hotel_id=hotel_id, date_from=date_from, date_to=date_to)
 
 @router.get("/{hotel_id}/rooms/{room_id}", name="Получить одну комнату а отеля")
 async def get_room_by_id(hotel_id: int, room_id: int):
