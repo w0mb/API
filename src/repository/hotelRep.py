@@ -3,7 +3,7 @@ from models.rooms_models import RoomsOrm
 from src.models.hotel_models import HotelsOrm
 from src.repository.baseRep import BaseRepository
 
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, func
 
 from src.api.status import Status
 from src.repository.utils import rooms_ids_for_booking
@@ -16,44 +16,31 @@ class HotelRepository(BaseRepository):
 
 
     async def get_filtered_by_time(
-        self,
-        date_from: date,
-        date_to: date,
-        title: str = None,
-        location: str = None,
-        limit: int = None,
-        offset: int = None
-    ):
-        # Получаем ID комнат через запрос к БД
-        rooms_ids_to_get = rooms_ids_for_booking(
-            date_from=date_from, 
-            date_to=date_to
-        )
-        
-        # Если нет доступных комнат, возвращаем пустой список
-        if not rooms_ids_to_get:
-            return []
-        
-        # Формируем подзапрос для получения hotel_id
+            self,
+            date_from: date,
+            date_to: date,
+            location,
+            title,
+            limit,
+            offset,
+    ) -> list[hotel]:
+        rooms_ids_to_get = rooms_ids_for_booking(date_from=date_from, date_to=date_to)
         hotels_ids_to_get = (
             select(RoomsOrm.hotel_id)
             .select_from(RoomsOrm)
             .filter(RoomsOrm.id.in_(rooms_ids_to_get))
         )
-        
-        # Собираем фильтры
-        filters = []
-        filters.append(HotelsOrm.id.in_(hotels_ids_to_get))
-        
-        if title:
-            filters.append(HotelsOrm.title.ilike(f"%{title}%"))  # Используем ilike
-        
+
+        query = select(HotelsOrm).filter(HotelsOrm.id.in_(hotels_ids_to_get))
         if location:
-            filters.append(HotelsOrm.location.ilike(f"%{location}%"))
-        
-        # Возвращаем результат с пагинацией
-        return await self.get_filtred(
-            *filters,
-            limit=limit,
-            offset=offset
+            query = query.filter(func.lower(HotelsOrm.location).contains(location.strip().lower()))
+        if title:
+            query = query.filter(func.lower(HotelsOrm.title).contains(title.strip().lower()))
+        query = (
+            query
+            .limit(limit)
+            .offset(offset)
         )
+        result = await self.session.execute(query)
+
+        return [hotel.model_validate(hotel, from_attributes=True) for hotel in result.scalars().all()]

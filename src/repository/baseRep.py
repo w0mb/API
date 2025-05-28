@@ -19,7 +19,7 @@ class BaseRepository:
             query = query.offset(offset)
             
         result = await self.session.execute(query)
-        return [self.schema.model_validate(row, from_attributes=True) for row in result.scalars().all()]
+        return [self.chema.model_validate(row, from_attributes=True) for row in result.scalars().all()]
     
     async def get_all(self, *args, **kwargs):
         return await self.get_filtred()

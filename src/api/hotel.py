@@ -16,23 +16,23 @@ router = APIRouter(prefix="/hotels", tags=["Отели"])
 HOTEL_EXAMPLES = Config.schema_extra["examples"]
 
 
-@router.get("/")
+@router.get("")
 async def get_hotels(
-    db:DBDep,
-    date_from: date,
-    date_to: date,
-    title: str = None,
-    location: str = None,
-    limit: int = Query(10, ge=1),
-    offset: int = Query(0, ge=0)
+        pagination: PaginationDep,
+        db: DBDep,
+        location: str | None = Query(None, description="Локация"),
+        title: str | None = Query(None, description="Название отеля"),
+        date_from: date = Query(example="2024-08-01"),
+        date_to: date = Query(example="2024-08-10"),
 ):
+    per_page = pagination.per_page or 5
     return await db.hotels.get_filtered_by_time(
         date_from=date_from,
         date_to=date_to,
-        title=title,
         location=location,
-        limit=limit,
-        offset=offset
+        title=title,
+        limit=per_page,
+        offset=per_page * (pagination.page - 1)
     )
 
 
