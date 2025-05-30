@@ -5,7 +5,7 @@ from src.chemas.chema import hotel, hotelAdd, hotelPatch, Config
 from src.chemas.rooms_chema import Room, RoomAdd, RoomPatch, RoomRequestAdd, RoomPatchRequest
 from src.api.status import Status
 from src.db import new_session
-
+from src.chemas.comfort_chema import ComfortRequestAdd, RoomsComfortRequestAdd
 from sqlalchemy import insert, select, delete, update
 from src.models.hotel_models import HotelsOrm
 from src.api.dependencies import DBDep
@@ -31,13 +31,16 @@ async def get_room_by_id(hotel_id: int, room_id: int):
     async with new_session() as session:
         return await RoomRepository(session).get_one_or_none(id=room_id, hotel_id=hotel_id)
 
-@router.post("/{hotel_id}/rooms", name="добавить в БД комнату отеля")
-async def add_rooms(hotel_id: int, room_data: RoomRequestAdd = Body()):
-    async with new_session() as session:
-        res = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
-        result = await RoomRepository(session).add_one(res)
-        await session.commit()
-        return result
+@router.post("/{hotel_id}/rooms")
+async def create_room(hotel_id: int, db: DBDep, room_data: RoomRequestAdd = Body()):
+    _room_data = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
+    room = await db.rooms.add_one(_room_data)
+
+    rooms_comfort_data = [RoomsComfortRequestAdd(rooms_id=room.id, comfort_id=comfort_id) for comfort_id in room_data.comfort_ids]
+    await db.rooms_comfort.add_bulk(rooms_comfort_data)
+    await db.commit()
+
+    return {"status": "OK", "data": room}
 
 @router.delete("/{hotel_id}/rooms/{room_id}", name="удалить комнату у отеля")
 async def delete_room(
@@ -54,26 +57,59 @@ async def delete_room(
 
 @router.put("/{hotel_id}/rooms/{room_id}", name="полностью изменить комнату у отеля")
 async def change_room_put(
+        db: DBDep,
         hotel_id: int = Path(description="ID отеля, у которого меняем комнату"),
         room_id: int = Path(description="ID комнаты для Полного изменения", example=7),
         room_data: RoomRequestAdd = Body()
     ):
+    await db.rooms_comfort.delete(rooms_id=room_id)
+    _room_data = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
+    room = await db.rooms.edit(_room_data, id=room_id)
 
-    async with new_session() as session:
-        _data = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
-        await RoomRepository(session).edit(_data, id=room_id, hotel_id=hotel_id)
-        await session.commit()
-        return Status.OK_JSON
+    rooms_comfort_data = [RoomsComfortRequestAdd(rooms_id=room_id, comfort_id=comfort_id) for comfort_id in room_data.comfort_ids]
+    await db.rooms_comfort.add_bulk(rooms_comfort_data)
+    await db.commit()
+
+    return {"status": "OK", "data": room}
 
 @router.patch("/{hotel_id}/rooms/{room_id}", name="частично поменять комнату у отеля")
 async def partially_edit_room(
+        db: DBDep,
         room_data: RoomPatchRequest,
         hotel_id: int = Path(description="ID отеля, у которого меняем комнату"),
         room_id: int = Path(description="ID комнаты для Частичного изменения", example=7)
     ):
+    current_comforts = await db.rooms_comfort.get_filtred(rooms_id=room_id)
+    # Извлекаем ID текущих удобств
+    current_ids = {c.comfort_id for c in current_comforts}
+    
+    # Обрабатываем comfort_ids (поддерживаем int, list[int] и None)
+    comfort_ids = room_data.comfort_ids
+    if comfort_ids is None:
+        comfort_ids = []
+    elif isinstance(comfort_ids, int):
+        comfort_ids = [comfort_ids]
+    
+    requested_ids = set(comfort_ids)
+    
+    # Находим только ID для добавления (новые связи)
+    ids_to_add = requested_ids - current_ids
+    
+    # Массовое добавление новых связей
+    if ids_to_add:
+        to_add = [
+            RoomsComfortRequestAdd(rooms_id=room_id, comfort_id=comfort_id)
+            for comfort_id in ids_to_add
+        ]
+        await db.rooms_comfort.delete(rooms_id=room_id)
+        await db.rooms_comfort.add_bulk(to_add)
 
-    async with new_session() as session:
-        _data = RoomPatch(hotel_id=hotel_id, **room_data.model_dump(exclude_unset=True))
-        await RoomRepository(session).edit(_data, id=room_id, hotel_id=hotel_id, exclude_unset=True)
-        await session.commit()
-        return Status.OK_JSON
+    # Обновляем основную информацию о комнате - ВАЖНО: исключаем comfort_ids
+    room_update_data = room_data.model_dump(exclude={"comfort_ids"}, exclude_unset=True)
+    if room_update_data:
+        _room_data = RoomPatch(id=room_id, hotel_id=hotel_id, **room_update_data)
+        await db.rooms.edit(_room_data)
+    
+    await db.commit()
+        
+    

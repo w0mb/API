@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
 class UserRequestAdd(BaseModel):
     email: EmailStr
@@ -24,6 +24,7 @@ class hotelAdd(BaseModel):
 
 class hotel(hotelAdd):
     id: int
+    model_config = ConfigDict(from_attributes=True)
 
 class hotelPatch(BaseModel):
     title: str | None = Field(None)

@@ -10,16 +10,14 @@ class BaseRepository:
 
     def __init__(self, session):
         self.session = session
-    async def get_filtred(self, *filters, limit: int = None, offset: int = None):
-        query = select(self.model).where(*filters)
-        
-        if limit:
-            query = query.limit(limit)
-        if offset:
-            query = query.offset(offset)
-            
+    async def get_filtred(self, *filter, **filter_by):
+        query = (
+            select(self.model)
+            .filter(*filter)
+            .filter_by(**filter_by)
+        )
         result = await self.session.execute(query)
-        return [self.chema.model_validate(row, from_attributes=True) for row in result.scalars().all()]
+        return [self.chema.model_validate(model) for model in result.scalars().all()]
     
     async def get_all(self, *args, **kwargs):
         return await self.get_filtred()
@@ -36,6 +34,11 @@ class BaseRepository:
         result = await self.session.execute(add_data_stmt)
         model = result.scalars().one()
         return self.chema.model_validate(model, from_attributes=True)
+    
+    async def add_bulk(self, data: list[BaseModel]):
+        add_data_stmt = insert(self.model).values([item.model_dump() for item in data])
+        await self.session.execute(add_data_stmt)
+
 
     async def delete(self, **filter_by) -> None:
         print(filter_by)
