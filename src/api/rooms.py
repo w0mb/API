@@ -62,15 +62,11 @@ async def change_room_put(
         room_id: int = Path(description="ID комнаты для Полного изменения", example=7),
         room_data: RoomRequestAdd = Body()
     ):
-    await db.rooms_comfort.delete(rooms_id=room_id)
     _room_data = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
-    room = await db.rooms.edit(_room_data, id=room_id)
-
-    rooms_comfort_data = [RoomsComfortRequestAdd(rooms_id=room_id, comfort_id=comfort_id) for comfort_id in room_data.comfort_ids]
-    await db.rooms_comfort.add_bulk(rooms_comfort_data)
+    await db.rooms.edit(_room_data, id=room_id)
+    await db.rooms_comfort.set_room_comforts(room_id, comfort_ids=room_data.comfort_ids)
     await db.commit()
-
-    return {"status": "OK", "data": room}
+    return {"status": "OK"}
 
 @router.patch("/{hotel_id}/rooms/{room_id}", name="частично поменять комнату у отеля")
 async def partially_edit_room(
@@ -79,37 +75,12 @@ async def partially_edit_room(
         hotel_id: int = Path(description="ID отеля, у которого меняем комнату"),
         room_id: int = Path(description="ID комнаты для Частичного изменения", example=7)
     ):
-    current_comforts = await db.rooms_comfort.get_filtred(rooms_id=room_id)
-    # Извлекаем ID текущих удобств
-    current_ids = {c.comfort_id for c in current_comforts}
-    
-    # Обрабатываем comfort_ids (поддерживаем int, list[int] и None)
-    comfort_ids = room_data.comfort_ids
-    if comfort_ids is None:
-        comfort_ids = []
-    elif isinstance(comfort_ids, int):
-        comfort_ids = [comfort_ids]
-    
-    requested_ids = set(comfort_ids)
-    
-    # Находим только ID для добавления (новые связи)
-    ids_to_add = requested_ids - current_ids
-    
-    # Массовое добавление новых связей
-    if ids_to_add:
-        to_add = [
-            RoomsComfortRequestAdd(rooms_id=room_id, comfort_id=comfort_id)
-            for comfort_id in ids_to_add
-        ]
-        await db.rooms_comfort.delete(rooms_id=room_id)
-        await db.rooms_comfort.add_bulk(to_add)
-
-    # Обновляем основную информацию о комнате - ВАЖНО: исключаем comfort_ids
-    room_update_data = room_data.model_dump(exclude={"comfort_ids"}, exclude_unset=True)
-    if room_update_data:
-        _room_data = RoomPatch(id=room_id, hotel_id=hotel_id, **room_update_data)
-        await db.rooms.edit(_room_data)
-    
+    _room_data_dict = room_data.model_dump(exclude_unset=True)
+    _room_data = RoomPatch(hotel_id=hotel_id, **_room_data_dict)
+    await db.rooms.edit(_room_data, exclude_unset=True, id=room_id, hotel_id=hotel_id)
+    if "comfort_ids" in _room_data_dict:
+        await db.rooms_comfort.set_room_comforts(room_id, comfort_ids=_room_data_dict["comfort_ids"])
     await db.commit()
+    return {"status": "OK"}
         
     
