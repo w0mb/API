@@ -10,6 +10,7 @@ class BaseRepository:
 
     def __init__(self, session):
         self.session = session
+        
     async def get_filtred(self, *filter, **filter_by):
         query = (
             select(self.model)

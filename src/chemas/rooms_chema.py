@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+
+from src.chemas.comfort_chema import Comfort
 
 class RoomAdd(BaseModel):
     hotel_id: int
@@ -30,3 +32,5 @@ class RoomPatch(BaseModel):
     price: int | None = None
     count: int | None = None
     
+class RoomWithRels(Room):
+    comforts: list[Comfort]
