@@ -1,16 +1,16 @@
 from sqlalchemy import select, insert, delete
 
 from src.repository.baseRep import BaseRepository
-from src.models.comfort_model import ComfortOrm, RoomsComfortOrm
+from src.models.facilities_models import FacilitiesOrm, RoomsFacilitiesOrm
 from src.chemas.comfort_chema import Comfort, RoomsComfort
 
 
 class ComfortRepository(BaseRepository):
-    model = ComfortOrm
+    model = FacilitiesOrm
     chema = Comfort
     
 class RoomsComfortRepositiry(BaseRepository):
-    model = RoomsComfortOrm
+    model = RoomsFacilitiesOrm
     chema = RoomsComfort
 
     async def set_room_comforts(self, rooms_id: int, comfort_ids: list[int]) -> None:

@@ -1,21 +1,22 @@
-from sqlalchemy import ForeignKey
+# rooms_models.py
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from sqlalchemy import ForeignKey
 from src.db import BaseOrm
-
 
 class RoomsOrm(BaseOrm):
     __tablename__ = "rooms"
     __table_args__ = {'extend_existing': True}
+    
     id: Mapped[int] = mapped_column(primary_key=True)
     hotel_id: Mapped[int] = mapped_column(ForeignKey("hotels.id"))
     title: Mapped[str]
-    discription: Mapped[str | None]
+    description: Mapped[str | None]
     price: Mapped[int]
-    count: Mapped[int]
+    quantity: Mapped[int]
 
-    comfort: Mapped[list["ComfortOrm"]] = relationship( # type: ignore
-        secondary="rooms_comfort",
-        back_populates="rooms",
-        
+    # Используем backref вместо back_populates
+    facilities = relationship(
+        "FacilitiesOrm", 
+        secondary="rooms_facilities",
+        backref="rooms"  # Создаст автоматическое отношение в FacilitiesOrm
     )
