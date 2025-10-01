@@ -9,7 +9,8 @@ router = APIRouter(prefix="/facilities", tags=["Удобства"])
 
 
 @router.get("")
-@cache(expire=10)
+# @cache(expire=10)
+#Закоментировано для временного отключения redis
 async def get_facilities(db: DBDep):
     return await db.facilities.get_all()
 
@@ -19,6 +20,6 @@ async def create_facility(db: DBDep, facility_data: FacilityAdd = Body()):
     facility = await db.facilities.add(facility_data)
     await db.commit()
 
-    test_task.delay()
-
+    # test_task.delay()
+    # Закоменчено для отключкния celery
     return {"status": "OK", "data": facility}

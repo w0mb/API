@@ -29,9 +29,20 @@ async def test_booking_crud(db):
     res_add = await db.bookings.add(booking_data_add)
     res_get = await db.bookings.get_one_or_none(id=res_add.id)
 
-    assert res_get
+    assert res_add
+    assert res_add.id == res_get.id
+    assert res_add.room_id == res_get.room_id
+    assert res_add.user_id == res_get.user_id
 
     await db.bookings.edit(booking_data_edit, True, id=res_add.id)
-    await db.bookings.delete(id=res_add.id)
+    updated_booking = await db.bookings.get_one_or_none(id=res_get.id)
+
+    assert updated_booking
+    assert updated_booking.id == res_get.id
+    assert updated_booking.date_to == booking_data_edit.date_to
+
+    await db.bookings.delete(id=res_get.id)
+    booking = await db.bookings.get_one_or_none(id=res_get.id)
+    assert not booking
 
     await db.commit()
