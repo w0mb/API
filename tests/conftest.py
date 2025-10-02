@@ -79,3 +79,4 @@ async def authenticated_ac(ac):
     assert response.status_code == 200
 
     assert "access_token" in response.cookies
+    yield ac
