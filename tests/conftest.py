@@ -80,3 +80,4 @@ async def authenticated_ac(ac):
 
     assert "access_token" in response.cookies
     yield ac
+

@@ -1,55 +1,36 @@
 from datetime import date
-from fastapi import HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from models.rooms import RoomsOrm
 from repositories.utils import rooms_ids_for_booking
 from src.models.bookings import BookingsOrm
 from src.repositories.base import BaseRepository
-from src.repositories.mappers.mappers import BookingDataMapper, RoomDataWithRelsMapper
-from src.schemas.bookings import Booking
-from src.database import session
+from src.repositories.mappers.mappers import BookingDataMapper
+from src.schemas.bookings import BookingAdd
 
 
 class BookingsRepository(BaseRepository):
     model = BookingsOrm
     mapper = BookingDataMapper
 
-    async def add_booking(
-        self,
-        hotel_id,
-        date_from: date,
-        date_to: date,
-    ):
-        rooms_ids_to_get = rooms_ids_for_booking(date_from, date_to, hotel_id)
-
-        
+    async def get_bookings_with_today_checkin(self):
         query = (
-            select(RoomsOrm)
-            .options(selectinload(RoomsOrm.facilities))
-            .filter(RoomsOrm.id.in_(rooms_ids_to_get))
+            select(BookingsOrm)
+            .filter(BookingsOrm.date_from == date.today())
         )
-        result = await self.session.execute(query)
-        free_room = [
-            RoomDataWithRelsMapper.map_to_domain_entity(model)
-            for model in result.unique().scalars().all()
-        ][0]
-        if not free_room:
-            raise HTTPException(
-                status_code=404, detail="No free rooms available for the given dates."
-            )
+        res = await self.session.execute(query)
+        return [self.mapper.map_to_domain_entity(booking) for booking in res.scalars().all()]
 
-        new_booking = BookingsOrm(
-            room_id=free_room.id,
-            user_id=self.model.user_id,
-            date_from=self.model.date_from,
-            date_to=self.model.date_to,
-            description=self.model.description,
-            price=self.model.price,
+    async def add_booking(self, data: BookingAdd, hotel_id: int):
+        rooms_ids_to_get = rooms_ids_for_booking(
+            date_from=data.date_from,
+            date_to=data.date_to,
+            hotel_id=hotel_id,
         )
-        # session.add(new_booking)
-        await session.commit()
-        await session.refresh(new_booking)
+        rooms_ids_to_book_res = await self.session.execute(rooms_ids_to_get)
+        rooms_ids_to_book: list[int] = rooms_ids_to_book_res.scalars().all()
 
-        return new_booking
+        if data.room_id in rooms_ids_to_book:
+            new_booking = await self.add(data)
+            return new_booking
+        else:
+            raise Exception
