@@ -6,7 +6,7 @@ from sqlalchemy import ForeignKey
 
 from src.database import Base
 
-if typing.TYPE_CHEKING:
+if typing.TYPE_CHECKING:
     from src.models.facilities import FacilitiesOrm
 
 
