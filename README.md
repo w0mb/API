@@ -2,7 +2,7 @@
 docker network create myNetwork
 
 docker run --name booking_db \
-    -p 6432:5432 \
+    -p 6432:5433 \
     -e POSTGRES_USER=abcde \
     -e POSTGRES_PASSWORD=abcde \
     -e POSTGRES_DB=booking \
