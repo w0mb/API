@@ -7,7 +7,7 @@ docker run --name booking_db \
     -e POSTGRES_PASSWORD=abcde \
     -e POSTGRES_DB=booking \
     --volume pg-booking-data:/var/lib/postgresql/data \
-    -d postgres:16
+    -d postgres:16 -p 5433
 
 docker run --name booking_cache \
     -p 7379:6379 \
